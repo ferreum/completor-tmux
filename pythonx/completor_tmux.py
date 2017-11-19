@@ -44,7 +44,7 @@ def _get_completions(base, **kw):
     pattern = '^' + _escape_grep_regex(base)
     script = _get_script(pattern, grep_args=grep_args, **kw)
     output = subprocess.check_output(["/bin/bash", "-c", script],
-                                     shell=False)
+                                     shell=False, stderr=subprocess.DEVNULL)
     res = output.split(b'\n')
     return res
 
