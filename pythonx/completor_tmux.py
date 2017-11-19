@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
+import os
 import subprocess
 import shlex
 import logging
@@ -11,11 +12,16 @@ from completor import Completor
 logger = logging.getLogger('completor')
 
 
-def _get_script(pattern, minlen=3, grep_args=''):
+GREP_REGEX_ESCAPE = {c: '\\' + c for c in r'*^$][.\')'}
+
+
+def _get_script(pattern, minlen=3, grep_args='', exclude_pane=None):
     # list all panes
     s = "tmux list-panes -a -F '#{pane_id}'"
-    # exclude current pane
-    s += ' | grep -v -F "$TMUX_PANE"'
+    if exclude_pane:
+        # exclude given pane
+        escaped = exclude_pane.translate(GREP_REGEX_ESCAPE)
+        s += ' | grep -v ' + shlex.quote('^' + escaped + "$")
     # capture panes
     s += " | xargs -r -P0 -n1 tmux capture-pane -J -p -t"
     # copy lines and split words
@@ -30,8 +36,6 @@ def _get_script(pattern, minlen=3, grep_args=''):
     s += " | awk 'length($0) >= %d'" % minlen
     return s
 
-
-GREP_REGEX_ESCAPE = {c: '\\' + c for c in r'*^$][.\')'}
 
 def _get_completions(base, **kw):
     grep_args = ''
@@ -51,8 +55,9 @@ class Tmux(Completor):
     def parse(self, base):
         if len(base) < 3:
             return []
+        this_pane = os.getenv('TMUX_PANE')
 
-        res = _get_completions(base, minlen=3)
+        res = _get_completions(base, minlen=3, exclude_pane=this_pane)
 
         return [{'word': token.decode('utf-8'), 'menu': '[TMUX]'} for token in res]
 
