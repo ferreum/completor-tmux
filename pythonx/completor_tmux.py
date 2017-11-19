@@ -4,12 +4,8 @@
 import os
 import subprocess
 import shlex
-import logging
 
 from completor import Completor
-
-
-logger = logging.getLogger('completor')
 
 
 _grep_esc_table = {c: '\\' + c for c in '*^$][.\\'}
