@@ -12,7 +12,7 @@ from completor import Completor
 logger = logging.getLogger('completor')
 
 
-GREP_REGEX_ESCAPE = {c: '\\' + c for c in r'*^$][.\')'}
+GREP_REGEX_ESCAPE = {c: '\\' + c for c in '*^$][.\\'}
 
 
 def _get_script(pattern, minlen=3, grep_args='', exclude_pane=None):
