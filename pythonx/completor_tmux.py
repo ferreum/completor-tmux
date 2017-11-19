@@ -15,7 +15,7 @@ logger = logging.getLogger('completor')
 _grep_esc_table = {c: '\\' + c for c in '*^$][.\\'}
 
 
-def _grep_regex_escape(s):
+def _escape_grep_regex(s):
     return s.translate(_grep_esc_table)
 
 
@@ -24,7 +24,7 @@ def _get_script(pattern, minlen=3, grep_args='', exclude_pane=None):
     s = "tmux list-panes -a -F '#{pane_id}'"
     if exclude_pane:
         # exclude given pane
-        escaped = _grep_regex_escape(exclude_pane)
+        escaped = _escape_grep_regex(exclude_pane)
         s += ' | grep -v ' + shlex.quote('^' + escaped + "$")
     # capture panes
     s += " | xargs -r -P0 -n1 tmux capture-pane -J -p -t"
@@ -45,7 +45,7 @@ def _get_completions(base, **kw):
     grep_args = ''
     if base.islower():
         grep_args = '-i'
-    pattern = '^' + _grep_regex_escape(base)
+    pattern = '^' + _escape_grep_regex(base)
     script = _get_script(pattern, grep_args=grep_args, **kw)
     output = subprocess.check_output(["/bin/bash", "-c", script],
                                      shell=False)
