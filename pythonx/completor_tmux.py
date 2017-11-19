@@ -1,0 +1,58 @@
+# -*- coding: utf-8 -*-
+
+
+import subprocess
+import shlex
+import logging
+
+from completor import Completor
+
+
+logger = logging.getLogger('completor')
+
+
+def _get_script(pattern, minlen=3, grep_args=''):
+    # list all panes
+    s = "tmux list-panes -a -F '#{pane_id}'"
+    # exclude current pane
+    s += ' | grep -v -F "$TMUX_PANE"'
+    # capture panes
+    s += " | xargs -r -P0 -n1 tmux capture-pane -J -p -t"
+    # copy lines and split words
+    s += " | sed -e 'p;s/[^a-zA-Z0-9_]/ /g'"
+    # split on spaces
+    s += " | tr -s '[:space:]' '\\n'"
+    # remove surrounding non-word characters
+    s += ' | grep -o "\\w.*\\w"'
+    # filter out words not beginning with pattern
+    s += ' | grep ' + grep_args + ' -- ' + shlex.quote(pattern)
+    # filter out short words
+    s += " | awk 'length($0) >= %d'" % minlen
+    return s
+
+
+GREP_REGEX_ESCAPE = {c: '\\' + c for c in r'*^$][.\')'}
+
+def _get_completions(base, **kw):
+    grep_args = ''
+    if base.islower():
+        grep_args = '-i'
+    pattern = '^' + base.translate(GREP_REGEX_ESCAPE)
+    script = _get_script(pattern, grep_args=grep_args, **kw)
+    output = subprocess.check_output(["/bin/bash", "-c", script],
+                                     shell=False)
+    res = output.split(b'\n')
+    return res
+
+
+class Tmux(Completor):
+    filetype = 'common_tmux'
+
+    def parse(self, base):
+        if len(base) < 3:
+            return []
+
+        res = _get_completions(base, minlen=3)
+
+        return [{'word': token.decode('utf-8'), 'menu': '[TMUX]'} for token in res]
+
