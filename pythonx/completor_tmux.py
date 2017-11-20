@@ -4,8 +4,12 @@
 import os
 import subprocess
 import shlex
+import logging
 
 from completor import Completor
+
+
+logger = logging.getLogger('completor')
 
 
 _grep_esc_table = {c: '\\' + c for c in '*^$][.\\'}
@@ -37,9 +41,18 @@ def _get_completions(base, **kw):
         grep_args = '-i'
     pattern = '^' + _escape_grep_regex(base)
     script = _get_script(pattern, grep_args=grep_args, **kw)
-    output = subprocess.run(["/bin/bash", "-c", script], shell=False,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.DEVNULL).stdout
+
+    logger.info("tmux: script: %r", script)
+
+    proc = subprocess.run(["/bin/bash", "-c", script], shell=False,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE)
+
+    logger.info("tmux: proc status: %r", proc.returncode)
+    if proc.stderr:
+        logger.info("tmux: stderr: %r", proc.stderr)
+
+    output = proc.stdout
     res = output.split(b'\n')
     return res
 
