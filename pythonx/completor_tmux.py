@@ -28,7 +28,7 @@ def _get_script(pattern, grep_args='', exclude_pane=None):
         s += ' | grep -v ' + shlex.quote('^' + escaped + "$")
     # capture panes
     s += " | xargs -r -P0 -n1 tmux capture-pane -J -p -t"
-    # split on spaces
+    # split words
     s += " | tr -c -s 'a-zA-Z0-9_' '\\n'"
     # filter out words not beginning with pattern
     s += ' | grep ' + grep_args + ' -- ' + shlex.quote(pattern)
