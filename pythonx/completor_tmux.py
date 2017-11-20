@@ -19,24 +19,30 @@ def _escape_grep_regex(s):
     return s.translate(_grep_esc_table)
 
 
+_have_gnu_xargs_result = None
 def _have_gnu_xargs():
     global _have_gnu_xargs_result
-    try:
-        return _have_gnu_xargs_result
-    except NameError:
-        proc = subprocess.run(['xargs', '-r', '-P0', 'echo'],
-                              input=b'args_work',
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
-        have = proc.stdout.startswith(b'args_work')
-        if have:
-            logger.info("tmux: detected gnu-compatible xargs")
-        else:
-            logger.info("tmux: no gnu compatible xargs. "
-                        "status=%r, stdout=%r, stderr=%r",
-                        proc.returncode, proc.stdout, proc.stderr)
-        _have_gnu_xargs_result = have
+
+    have = _have_gnu_xargs_result
+    if have is not None:
         return have
+
+    proc = subprocess.run(['xargs', '-r', '-P0', 'echo'],
+                            input=b'args_work',
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+
+    have = proc.stdout.startswith(b'args_work')
+    _have_gnu_xargs_result = have
+
+    if have:
+        logger.info("tmux: detected gnu-compatible xargs")
+    else:
+        logger.info("tmux: no gnu compatible xargs. "
+                    "status=%r, stdout=%r, stderr=%r",
+                    proc.returncode, proc.stdout, proc.stderr)
+
+    return have
 
 
 def _get_script(pattern, grep_args='', exclude_pane=None):
