@@ -19,6 +19,26 @@ def _escape_grep_regex(s):
     return s.translate(_grep_esc_table)
 
 
+def _have_gnu_xargs():
+    global _have_gnu_xargs_result
+    try:
+        return _have_gnu_xargs_result
+    except NameError:
+        proc = subprocess.run(['xargs', '-r', '-P0', 'echo'],
+                              input=b'args_work',
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
+        have = proc.stdout.startswith(b'args_work')
+        if have:
+            logger.info("tmux: detected gnu-compatible xargs")
+        else:
+            logger.info("tmux: no gnu compatible xargs. "
+                        "status=%r, stdout=%r, stderr=%r",
+                        proc.returncode, proc.stdout, proc.stderr)
+        _have_gnu_xargs_result = have
+        return have
+
+
 def _get_script(pattern, grep_args='', exclude_pane=None):
     # list all panes
     s = "tmux list-panes -a -F '#{pane_id}'"
@@ -27,7 +47,10 @@ def _get_script(pattern, grep_args='', exclude_pane=None):
         escaped = _escape_grep_regex(exclude_pane)
         s += ' | grep -v ' + shlex.quote('^' + escaped + "$")
     # capture panes
-    s += " | xargs -r -P0 -n1 tmux capture-pane -J -p -t"
+    if _have_gnu_xargs():
+        s += " | xargs -r -P0 -n1 tmux capture-pane -J -p -t"
+    else:
+        s += " | xargs -n1 tmux capture-pane -J -p -t"
     # split words
     s += " | tr -c -s 'a-zA-Z0-9_' '\\n'"
     # filter out words not beginning with pattern
@@ -36,6 +59,8 @@ def _get_script(pattern, grep_args='', exclude_pane=None):
 
 
 def _get_completions(base, **kw):
+    logger.info("tmux: base: %r", base)
+
     grep_args = ''
     if base.islower():
         grep_args = '-i'
