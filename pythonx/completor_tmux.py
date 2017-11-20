@@ -15,7 +15,7 @@ def _escape_grep_regex(s):
     return s.translate(_grep_esc_table)
 
 
-def _get_script(pattern, minlen=3, grep_args='', exclude_pane=None):
+def _get_script(pattern, grep_args='', exclude_pane=None):
     # list all panes
     s = "tmux list-panes -a -F '#{pane_id}'"
     if exclude_pane:
@@ -32,8 +32,6 @@ def _get_script(pattern, minlen=3, grep_args='', exclude_pane=None):
     s += ' | grep -o "\\w.*\\w"'
     # filter out words not beginning with pattern
     s += ' | grep ' + grep_args + ' -- ' + shlex.quote(pattern)
-    # filter out short words
-    s += " | awk 'length($0) >= %d'" % minlen
     return s
 
 
@@ -57,7 +55,7 @@ class Tmux(Completor):
             return []
         this_pane = os.getenv('TMUX_PANE')
 
-        res = _get_completions(base, minlen=3, exclude_pane=this_pane)
+        res = _get_completions(base, exclude_pane=this_pane)
 
         return [{'word': token.decode('utf-8'), 'menu': '[TMUX]'}
                 for token in res]
