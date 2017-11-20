@@ -90,6 +90,7 @@ def _get_completions(base, **kw):
 
 class Tmux(Completor):
     filetype = 'common_tmux'
+    sync = True
 
     def parse(self, base):
         if len(base) < 3:
