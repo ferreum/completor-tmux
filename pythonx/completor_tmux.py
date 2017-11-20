@@ -25,7 +25,7 @@ def _get_script(pattern, grep_args='', exclude_pane=None):
     # capture panes
     s += " | xargs -r -P0 -n1 tmux capture-pane -J -p -t"
     # copy lines and split words
-    s += " | sed -e 'p;s/[^a-zA-Z0-9_]/ /g'"
+    s += " | sed -e 's/[^a-zA-Z0-9_]/ /g'"
     # split on spaces
     s += " | tr -s '[:space:]' '\\n'"
     # remove surrounding non-word characters
@@ -41,8 +41,9 @@ def _get_completions(base, **kw):
         grep_args = '-i'
     pattern = '^' + _escape_grep_regex(base)
     script = _get_script(pattern, grep_args=grep_args, **kw)
-    output = subprocess.check_output(["/bin/bash", "-c", script],
-                                     shell=False, stderr=subprocess.DEVNULL)
+    output = subprocess.run(["/bin/bash", "-c", script], shell=False,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL).stdout
     res = output.split(b'\n')
     return res
 
