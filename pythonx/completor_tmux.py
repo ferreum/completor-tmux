@@ -24,12 +24,8 @@ def _get_script(pattern, grep_args='', exclude_pane=None):
         s += ' | grep -v ' + shlex.quote('^' + escaped + "$")
     # capture panes
     s += " | xargs -r -P0 -n1 tmux capture-pane -J -p -t"
-    # copy lines and split words
-    s += " | sed -e 's/[^a-zA-Z0-9_]/ /g'"
     # split on spaces
-    s += " | tr -s '[:space:]' '\\n'"
-    # remove surrounding non-word characters
-    s += ' | grep -o "\\w.*\\w"'
+    s += " | tr -c -s 'a-zA-Z0-9_' '\\n'"
     # filter out words not beginning with pattern
     s += ' | grep ' + grep_args + ' -- ' + shlex.quote(pattern)
     return s
