@@ -72,10 +72,10 @@ def _get_script(pattern, grep_args='', exclude_pane=None):
         s += " | xargs -r -P0 -n1 tmux capture-pane -J -p -t"
     else:
         s += " | xargs -n1 tmux capture-pane -J -p -t"
+    # split words
     if _have_grep_dash_o:
         s += r" | grep -o '\w\+'"
     else:
-        # split words
         s += r" | tr -c -s 'a-zA-Z0-9_' '\n'"
     # filter out words not beginning with pattern
     s += ' | grep ' + grep_args + ' -- ' + shlex.quote(pattern)
