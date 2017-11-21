@@ -55,12 +55,12 @@ _have_gnu_xargs = CheckFeature("gnu-compatible xargs",
 
 
 _have_grep_dash_o = CheckFeature("grep -o support",
-                                 ['grep', '-o', r'x\w\+'],
+                                 ['grep', '-o', r'\bx\w\+'],
                                  b'xy 1234 xz',
                                  b'xy\nxz\n'.__eq__)
 
 
-def _get_script(pattern, grep_args='', exclude_pane=None):
+def _get_script(prefix, grep_args='', exclude_pane=None):
     # list all panes
     s = "tmux list-panes -a -F '#{pane_id}'"
     if exclude_pane:
@@ -74,11 +74,14 @@ def _get_script(pattern, grep_args='', exclude_pane=None):
         s += " | xargs -n1 tmux capture-pane -J -p -t"
     # split words
     if _have_grep_dash_o:
-        s += r" | grep -o '\w\+'"
+        escaped = _escape_grep_regex(prefix)
+        pattern = '\\b' + escaped + '\\w*'
+        s += ' | grep ' + grep_args + ' -o -- ' + shlex.quote(pattern)
     else:
         s += r" | tr -c -s 'a-zA-Z0-9_' '\n'"
-    # filter out words not beginning with pattern
-    s += ' | grep ' + grep_args + ' -- ' + shlex.quote(pattern)
+        # filter out words not beginning with pattern
+        pattern = "^" + _escape_grep_regex(prefix)
+        s += ' | grep ' + grep_args + ' -- ' + shlex.quote(pattern)
     return s
 
 
@@ -88,8 +91,7 @@ def _get_completions(base, **kw):
     grep_args = ''
     if base.islower():
         grep_args = '-i'
-    pattern = '^' + _escape_grep_regex(base)
-    script = _get_script(pattern, grep_args=grep_args, **kw)
+    script = _get_script(base, grep_args=grep_args, **kw)
 
     logger.info("tmux: script: %r", script)
 
