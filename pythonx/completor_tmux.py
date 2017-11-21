@@ -48,13 +48,13 @@ class CheckFeature(object):
         return self.have
 
 
-_have_gnu_xargs = CheckFeature("gnu-compatible xargs",
+_have_gnu_xargs = CheckFeature('gnu-compatible xargs',
                                ['xargs', '-r', '-P0', 'echo'],
                                b'args_work',
                                lambda b: b.startswith(b'args_work'))
 
 
-_have_grep_dash_o = CheckFeature("grep -o support",
+_have_grep_dash_o = CheckFeature('grep -o support',
                                  ['grep', '-o', r'\bx\w\+'],
                                  b'xy 1234 xz',
                                  b'xy\nxz\n'.__eq__)
@@ -66,12 +66,12 @@ def _get_script(prefix, grep_args='', exclude_pane=None):
     if exclude_pane:
         # exclude given pane
         escaped = _escape_grep_regex(exclude_pane)
-        s += ' | grep -v ' + shlex.quote('^' + escaped + "$")
+        s += ' | grep -v ' + shlex.quote('^' + escaped + '$')
     # capture panes
     if _have_gnu_xargs:
-        s += " | xargs -r -P0 -n1 tmux capture-pane -J -p -t"
+        s += ' | xargs -r -P0 -n1 tmux capture-pane -J -p -t'
     else:
-        s += " | xargs -n1 tmux capture-pane -J -p -t"
+        s += ' | xargs -n1 tmux capture-pane -J -p -t'
     # split words
     if _have_grep_dash_o:
         escaped = _escape_grep_regex(prefix)
