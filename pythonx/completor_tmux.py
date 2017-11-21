@@ -19,6 +19,10 @@ def _escape_grep_regex(s):
     return s.translate(_grep_esc_table)
 
 
+def _fuzzy_pattern(s):
+    return '\\w*'.join([_escape_grep_regex(c) for c in s])
+
+
 class CheckFeature(object):
 
     def __init__(self, name, command, input, expect):
@@ -60,7 +64,7 @@ _have_grep_dash_o = CheckFeature('grep -o support',
                                  b'xy\nxz\n'.__eq__)
 
 
-def _get_script(prefix, grep_args='', exclude_pane=None):
+def _get_script(prefix, grep_args='', fuzzy=False, exclude_pane=None):
     # list all panes
     s = "tmux list-panes -a -F '#{pane_id}'"
     if exclude_pane:
@@ -72,15 +76,18 @@ def _get_script(prefix, grep_args='', exclude_pane=None):
         s += ' | xargs -r -P0 -n1 tmux capture-pane -J -p -t'
     else:
         s += ' | xargs -n1 tmux capture-pane -J -p -t'
+    if fuzzy:
+        prefix_pattern = _fuzzy_pattern(prefix)
+    else:
+        prefix_pattern = _escape_grep_regex(prefix)
     # split words
     if _have_grep_dash_o:
-        escaped = _escape_grep_regex(prefix)
-        pattern = '\\b' + escaped + '\\w*'
+        pattern = '\\b' + prefix_pattern + '\\w*'
         s += ' | grep ' + grep_args + ' -o -- ' + shlex.quote(pattern)
     else:
         s += r" | tr -c -s 'a-zA-Z0-9_' '\n'"
         # filter out words not beginning with pattern
-        pattern = "^" + _escape_grep_regex(prefix)
+        pattern = "^" + prefix_pattern
         s += ' | grep ' + grep_args + ' -- ' + shlex.quote(pattern)
     return s
 
@@ -116,7 +123,7 @@ class Tmux(Completor):
         try:
             this_pane = os.getenv('TMUX_PANE')
 
-            res = _get_completions(base, exclude_pane=this_pane)
+            res = _get_completions(base, fuzzy=True, exclude_pane=this_pane)
 
             return [{'word': token.decode('utf-8'), 'menu': '[TMUX]'}
                     for token in res]
