@@ -93,7 +93,7 @@ def _get_completions(base, **kw):
 
     logger.info("tmux: script: %r", script)
 
-    proc = subprocess.run(["/bin/bash", "-c", script], shell=False,
+    proc = subprocess.run(["/bin/sh", "-c", script], shell=False,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.PIPE)
 
