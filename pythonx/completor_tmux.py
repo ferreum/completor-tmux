@@ -112,8 +112,6 @@ class Tmux(Completor):
 
     def parse(self, base):
         try:
-            if len(base) < 3:
-                return []
             this_pane = os.getenv('TMUX_PANE')
 
             res = _get_completions(base, exclude_pane=this_pane)
