@@ -5,6 +5,7 @@ import os
 import subprocess
 import shlex
 import logging
+import vim
 
 from completor import Completor
 
@@ -122,8 +123,9 @@ class Tmux(Completor):
     def parse(self, base):
         try:
             this_pane = os.getenv('TMUX_PANE')
+            fuzzy = vim.vars.get('completor_tmux_fuzzy', 1)
 
-            res = _get_completions(base, fuzzy=True, exclude_pane=this_pane)
+            res = _get_completions(base, fuzzy=fuzzy, exclude_pane=this_pane)
 
             return [{'word': token.decode('utf-8'), 'menu': '[TMUX]'}
                     for token in res]
