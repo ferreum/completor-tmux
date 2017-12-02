@@ -106,7 +106,9 @@ def _get_completions(base, **kw):
     logger.info("tmux: base: %r", base)
 
     grep_args = ''
-    if vim.options['smartcase'] and base.islower():
+    if vim.options['ignorecase'] and (
+            not vim.options['smartcase']
+            or base.islower()):
         grep_args = '-i'
     script = _get_script(base, grep_args=grep_args, **kw)
 
