@@ -7,8 +7,16 @@ import shlex
 import logging
 import vim
 
-from completers.common.utils import test_subseq, LIMIT
 from completor import Completor
+
+
+try:
+    from completers.common.utils import test_subseq, LIMIT
+except ImportError:
+    # fallback, in case completor's utils module changes
+    LIMIT = 50
+    def test_subseq(target, source):
+        return 0
 
 
 logger = logging.getLogger('completor')
