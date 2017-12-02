@@ -7,6 +7,7 @@ import shlex
 import logging
 import vim
 
+from completers.common.utils import test_subseq, LIMIT
 from completor import Completor
 
 
@@ -113,7 +114,7 @@ def _get_completions(base, **kw):
 
     output = proc.stdout
     res = output.split(b'\n')
-    return res
+    return map(bytes.decode, res)
 
 
 class Tmux(Completor):
@@ -125,10 +126,19 @@ class Tmux(Completor):
             this_pane = os.getenv('TMUX_PANE')
             fuzzy = vim.vars.get('completor_tmux_fuzzy', 1)
 
-            res = _get_completions(base, fuzzy=fuzzy, exclude_pane=this_pane)
+            words = _get_completions(base, fuzzy=fuzzy, exclude_pane=this_pane)
 
-            return [{'word': token.decode('utf-8'), 'menu': '[TMUX]'}
-                    for token in res]
+            res = set()
+            for word in words:
+                score = test_subseq(base, word)
+                if score is None:
+                    continue
+                res.add((score, len(word), word))
+                if len(res) > LIMIT:
+                    break
+
+            return [{'word': word, 'menu': '[TMUX]'}
+                    for _, _, word in sorted(res)]
         except Exception as e:
             logger.exception(e)
             raise
