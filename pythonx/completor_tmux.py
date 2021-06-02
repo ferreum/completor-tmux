@@ -22,7 +22,7 @@ except ImportError:
 logger = logging.getLogger('completor')
 
 
-_grep_esc_table = {c: '\\' + c for c in '*^$][.\\'}
+_grep_esc_table = {ord(c): '\\' + c for c in '*^$][.\\'}
 
 
 def _escape_grep_regex(s):
@@ -30,7 +30,7 @@ def _escape_grep_regex(s):
 
 
 def _fuzzy_pattern(s):
-    return '\\w*'.join([_escape_grep_regex(c) for c in s])
+    return '\\w*'.join([_grep_esc_table.get(ord(c), c) for c in s])
 
 
 class CheckFeature(object):
