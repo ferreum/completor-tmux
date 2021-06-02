@@ -116,7 +116,8 @@ def _get_completions(base, **kw):
 
     proc = subprocess.run(["/bin/sh", "-c", script], shell=False,
                           stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE)
+                          stderr=subprocess.PIPE,
+                          timeout=1)
 
     logger.info("tmux: proc status: %r", proc.returncode)
     if proc.stderr:
