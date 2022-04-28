@@ -1,28 +1,43 @@
 # -*- coding: utf-8 -*-
 
 
-import os
-import subprocess
-import shlex
 import logging
+import os
+import re
+import shlex
+import subprocess
 import vim
 
 from completor import Completor
 
 
+# with fallback, in case completor's modules change
+
 try:
-    from completers.common.utils import test_subseq, LIMIT
+    from completor import LIMIT
 except ImportError:
-    # fallback, in case completor's utils module changes
     LIMIT = 50
+
+try:
+    from completers.common.utils import test_subseq
+except ImportError:
     def test_subseq(target, source):
         return 0
+
+
+# from completor module
+def get_encoding():
+    return (vim.current.buffer.options['fileencoding']
+            or vim.options['encoding']
+            or b'utf-8').encode('utf-8')
 
 
 logger = logging.getLogger('completor')
 
 
 _grep_esc_table = {ord(c): '\\' + c for c in '*^$][.\\'}
+
+_base_regex = re.compile(r'\w*$', re.U)
 
 
 def _escape_grep_regex(s):
@@ -102,7 +117,7 @@ def _get_script(prefix, grep_args='', fuzzy=False, exclude_pane=None):
     return s
 
 
-def _get_completions(base, **kw):
+def _get_candidates(base, **kw):
     logger.info("tmux: base: %r", base)
 
     grep_args = ''
@@ -128,28 +143,44 @@ def _get_completions(base, **kw):
     return map(bytes.decode, res)
 
 
+def _get_result(base, min_chars):
+    match = _base_regex.search(base)
+    if not match:
+        return []
+    text = match.group()
+    if len(text) < min_chars:
+        return []
+
+    match_start = match.start()
+    if match_start > 0:
+        # completor expects the byte offset
+        offset = len(base[:match_start].encode(get_encoding()))
+    else:
+        offset = 0
+
+    this_pane = os.getenv('TMUX_PANE')
+    fuzzy = vim.vars.get('completor_tmux_fuzzy', 1)
+
+    res = set()
+    for word in _get_candidates(text, fuzzy=fuzzy, exclude_pane=this_pane):
+        score = test_subseq(text, word)
+        if score is None:
+            continue
+        res.add((score, len(word), word))
+        if len(res) > LIMIT:
+            break
+
+    return [{'word': word, 'menu': '[TMUX]', 'offset': offset}
+            for _, _, word in sorted(res)]
+
+
 class Tmux(Completor):
     filetype = 'common_tmux'
     sync = True
 
     def parse(self, base):
         try:
-            this_pane = os.getenv('TMUX_PANE')
-            fuzzy = vim.vars.get('completor_tmux_fuzzy', 1)
-
-            words = _get_completions(base, fuzzy=fuzzy, exclude_pane=this_pane)
-
-            res = set()
-            for word in words:
-                score = test_subseq(base, word)
-                if score is None:
-                    continue
-                res.add((score, len(word), word))
-                if len(res) > LIMIT:
-                    break
-
-            return [{'word': word, 'menu': '[TMUX]'}
-                    for _, _, word in sorted(res)]
+            return _get_result(base, self.get_option('min_chars'))
         except Exception as e:
             logger.exception(e)
             raise
